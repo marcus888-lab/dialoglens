@@ -131,9 +131,53 @@ DialogLens/
 - **Coverage**: Verification, room handler
 - **Result**: All tests passing ✅
 
-### Phase 5: Job Queue (In Progress)
+### Phase 5: Job Queue (Completed)
 **Branch**: `feature/job-queue`
-**Time: 2024-01-26 20:00-ongoing**
+**Time: 2024-01-26 20:00-21:00**
+
+#### 5.1 BullMQ Setup
+- **Dependencies**: bullmq, ioredis
+- **Queues Created**:
+  - Transcription queue
+  - Egress queue  
+  - Notification queue
+
+#### 5.2 Job Processors
+- **TranscriptionProcessor**: 
+  - Processes recording files
+  - Updates egress job status
+  - Creates transcript records
+  - Simulates transcription progress
+  
+- **EgressProcessor**:
+  - Handles start/stop recording jobs
+  - Integrates with LiveKit Egress API
+  - Manages recording lifecycle
+  
+- **NotificationProcessor**:
+  - Handles completion/failure notifications
+  - Updates conversation status
+  - Placeholder for email/webhook notifications
+
+#### 5.3 Job Service
+- Unified interface for adding jobs
+- Job status tracking
+- Queue cleanup utilities
+- Graceful shutdown handling
+
+#### 5.4 Integration Points
+- Webhook handlers queue transcription jobs
+- API endpoint for job status checks
+- Worker initialization on app start
+
+#### 5.5 Testing
+- **Tests Created**: 15 tests
+- **Coverage**: Job service, all processors
+- **Result**: All tests passing ✅
+
+### Phase 6: Transcription Pipeline (In Progress)
+**Branch**: `feature/transcription-pipeline`
+**Time: 2024-01-26 21:00-ongoing**
 
 [To be continued...]
 
@@ -212,4 +256,4 @@ bun run start        # Start production server
 
 ---
 
-*Last Updated: 2024-01-26 19:00*
+*Last Updated: 2024-01-26 21:00*

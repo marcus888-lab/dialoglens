@@ -1,5 +1,6 @@
 import { EgressInfo } from 'livekit-server-sdk'
-import { LiveKitEgressService } from '@/lib/livekit/egress.service'
+import { EgressService } from '@/lib/livekit/egress.service'
+import { JobService } from '@/lib/queue'
 
 export interface EgressEvent {
   egressInfo: EgressInfo
@@ -23,6 +24,15 @@ export class EgressWebhookHandler {
     console.log(`Egress ended: ${event.egressInfo.egressId}`)
     
     // Process the completion
-    await LiveKitEgressService.handleEgressComplete(event.egressInfo)
+    const result = await EgressService.handleEgressComplete(event.egressInfo)
+    
+    // If we have a recording URL, queue transcription job
+    if (result && result.recordingUrl) {
+      await JobService.addTranscriptionJob({
+        egressJobId: result.egressJob.id,
+        recordingUrl: result.recordingUrl,
+        conversationId: result.egressJob.conversationId,
+      })
+    }
   }
 }

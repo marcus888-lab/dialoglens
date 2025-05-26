@@ -4,17 +4,17 @@ import { transcriptionQueue, egressQueue, notificationQueue } from '../queues'
 import { redis } from '../config'
 
 vi.mock('../queues', () => {
-  const mockQueue = {
+  const createMockQueue = () => ({
     add: vi.fn().mockResolvedValue({ id: 'mock-job-id' }),
     getJob: vi.fn(),
     clean: vi.fn().mockResolvedValue([]),
     close: vi.fn().mockResolvedValue(undefined),
-  }
+  })
 
   return {
-    transcriptionQueue: mockQueue,
-    egressQueue: { ...mockQueue },
-    notificationQueue: { ...mockQueue },
+    transcriptionQueue: createMockQueue(),
+    egressQueue: createMockQueue(),
+    notificationQueue: createMockQueue(),
   }
 })
 
