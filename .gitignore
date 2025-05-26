@@ -73,6 +73,7 @@ NOTES.md
 *.tmp
 *.temp
 scratch/
+specs/
 
 # Test artifacts
 test-results/
