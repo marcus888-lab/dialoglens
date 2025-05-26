@@ -20,7 +20,10 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.817.0",
+    "@aws-sdk/s3-request-presigner": "^3.817.0",
     "@clerk/nextjs": "^5.1.6",
+    "@google-cloud/speech": "^7.1.0",
     "@prisma/client": "^5.16.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",

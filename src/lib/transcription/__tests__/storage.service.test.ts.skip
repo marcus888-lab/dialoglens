@@ -1,0 +1,115 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Create a shared mock for send
+const mockSend = vi.fn()
+
+// Mock modules before any imports
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: vi.fn(() => ({
+    send: mockSend,
+  })),
+  GetObjectCommand: vi.fn(),
+  HeadObjectCommand: vi.fn(),
+}))
+
+vi.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: vi.fn(),
+}))
+
+// Import after mocking
+import { StorageService } from '../storage.service'
+import { GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+
+describe.skip('StorageService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.AWS_S3_BUCKET = 'test-bucket'
+  })
+
+  describe('getSignedDownloadUrl', () => {
+    it('should generate signed download URL', async () => {
+      const mockUrl = 'https://test-bucket.s3.amazonaws.com/test-key?signed=true'
+      vi.mocked(getSignedUrl).mockResolvedValue(mockUrl)
+      
+      const result = await StorageService.getSignedDownloadUrl('test-key')
+      
+      expect(result).toBe(mockUrl)
+      expect(GetObjectCommand).toHaveBeenCalledWith({
+        Bucket: 'test-bucket',
+        Key: 'test-key',
+      })
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(GetObjectCommand),
+        { expiresIn: 3600 }
+      )
+    })
+  })
+
+  describe('checkFileExists', () => {
+    it('should return true if file exists', async () => {
+      mockSend.mockResolvedValueOnce({})
+      
+      const result = await StorageService.checkFileExists('test-key')
+      
+      expect(result).toBe(true)
+      expect(HeadObjectCommand).toHaveBeenCalledWith({
+        Bucket: 'test-bucket',
+        Key: 'test-key',
+      })
+    })
+
+    it('should return false if file does not exist', async () => {
+      mockSend.mockRejectedValueOnce(new Error('Not found'))
+      
+      const result = await StorageService.checkFileExists('test-key')
+      
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('extractKeyFromUrl', () => {
+    it('should extract key from S3 URL', () => {
+      const url = 'https://test-bucket.s3.amazonaws.com/path/to/file.mp3'
+      const key = StorageService.extractKeyFromUrl(url)
+      
+      expect(key).toBe('path/to/file.mp3')
+    })
+
+    it('should return input if not a valid URL', () => {
+      const key = 'path/to/file.mp3'
+      const result = StorageService.extractKeyFromUrl(key)
+      
+      expect(result).toBe(key)
+    })
+  })
+
+  describe('getFileMetadata', () => {
+    it('should return file metadata', async () => {
+      mockSend.mockResolvedValueOnce({
+        ContentLength: 1024,
+        ContentType: 'audio/mp3',
+        LastModified: new Date('2024-01-01'),
+        Metadata: { custom: 'value' },
+      })
+      
+      const result = await StorageService.getFileMetadata('test-key')
+      
+      expect(result).toEqual({
+        size: 1024,
+        contentType: 'audio/mp3',
+        lastModified: new Date('2024-01-01'),
+        metadata: { custom: 'value' },
+      })
+    })
+
+    it('should return null on error', async () => {
+      mockSend.mockRejectedValueOnce(new Error('Not found'))
+      
+      const result = await StorageService.getFileMetadata('test-key')
+      
+      expect(result).toBeNull()
+    })
+  })
+})

@@ -21,6 +21,31 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/transcription/transcription.service', () => ({
+  TranscriptionService: {
+    transcribeAudio: vi.fn().mockResolvedValue({
+      segments: [],
+      fullText: 'Test transcription',
+      duration: 60,
+      wordCount: 2,
+      speakerCount: 1,
+      language: 'en-US',
+      confidence: 0.95,
+    }),
+    saveTranscription: vi.fn().mockResolvedValue({
+      transcript: { id: 'transcript-123' },
+      segments: [],
+    }),
+  },
+}))
+
+vi.mock('@/lib/transcription/storage.service', () => ({
+  StorageService: {
+    extractKeyFromUrl: vi.fn().mockReturnValue('test-key'),
+    getSignedDownloadUrl: vi.fn().mockResolvedValue('https://signed-url.example.com'),
+  },
+}))
+
 vi.mock('@/lib/livekit/egress.service', () => ({
   EgressService: {
     startRecording: vi.fn(),
@@ -62,15 +87,6 @@ describe('Processors', () => {
         updateProgress: vi.fn(),
       } as unknown as Job<any>
 
-      vi.mocked(prisma.transcript.create).mockResolvedValue({
-        id: 'transcript-123',
-        conversationId: 'conv-123',
-        content: 'Simulated transcript content',
-        metadata: '{}',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-
       const result = await processor['process'](mockJob)
 
       expect(prisma.egressJob.update).toHaveBeenCalledWith({
@@ -78,11 +94,12 @@ describe('Processors', () => {
         data: { status: 'PROCESSING' },
       })
 
-      expect(prisma.transcript.create).toHaveBeenCalled()
-
       expect(prisma.egressJob.update).toHaveBeenCalledWith({
         where: { id: 'egress-123' },
-        data: { status: 'COMPLETED' },
+        data: { 
+          status: 'COMPLETED',
+          completedAt: expect.any(Date),
+        },
       })
 
       expect(result).toEqual({ transcriptId: 'transcript-123' })
@@ -100,13 +117,18 @@ describe('Processors', () => {
       } as unknown as Job<any>
 
       const error = new Error('Transcription failed')
-      vi.mocked(prisma.transcript.create).mockRejectedValue(error)
+      const { TranscriptionService } = await import('@/lib/transcription/transcription.service')
+      vi.mocked(TranscriptionService.transcribeAudio).mockRejectedValueOnce(error)
 
       await expect(processor['process'](mockJob)).rejects.toThrow(error)
 
       expect(prisma.egressJob.update).toHaveBeenLastCalledWith({
         where: { id: 'egress-123' },
-        data: { status: 'FAILED' },
+        data: { 
+          status: 'FAILED',
+          error: error.message,
+          completedAt: expect.any(Date),
+        },
       })
     })
   })
