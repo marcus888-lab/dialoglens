@@ -91,13 +91,13 @@
 ## Current Status
 
 - [x] Initial setup complete
-- [ ] Database setup
-- [ ] LiveKit integration
-- [ ] Authentication
-- [ ] Transcription pipeline
-- [ ] UI Dashboard
-- [ ] Webhook handlers
-- [ ] Job queue
+- [x] Database setup
+- [x] LiveKit integration
+- [x] Authentication
+- [x] Transcription pipeline
+- [x] UI Dashboard
+- [x] Webhook handlers
+- [x] Job queue
 - [ ] Notification system
 
 ## Priority Order
