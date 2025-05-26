@@ -14,6 +14,17 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
+// Mock Clerk
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn().mockResolvedValue({ userId: 'test-user-123' }),
+  currentUser: vi.fn().mockResolvedValue({
+    id: 'test-user-123',
+    emailAddresses: [{ emailAddress: 'test@example.com' }],
+    firstName: 'Test',
+    lastName: 'User',
+  }),
+}))
+
 // Mock environment variables for tests
 process.env.DATABASE_URL = 'file:./test.db'
 process.env.LIVEKIT_API_KEY = 'test-api-key'
