@@ -1,12 +1,5 @@
 import { 
-  Room, 
-  CreateRoomRequest,
-  ListRoomsRequest,
-  DeleteRoomRequest,
-  ListParticipantsRequest,
-  RoomParticipantIdentity,
-  UpdateParticipantRequest,
-  RemoveParticipantResponse
+  Room
 } from 'livekit-server-sdk'
 import { getRoomService } from './client'
 import { prisma } from '@/lib/prisma'
@@ -45,22 +38,24 @@ export class LiveKitRoomService {
     const liveKitRoomId = `room-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     
     // Create LiveKit room
-    const createRequest: CreateRoomRequest = {
+    const roomMetadata = {
+      ...metadata,
+      organizationId,
+      roomName: name,
+      transcriptionEnabled: enableTranscriptionAgent,
+      customerAgentEnabled: enableCustomerAgent,
+      customerContext: customerContext || {},
+      // Agent dispatch info for agents to check
+      requiresTranscription: enableTranscriptionAgent,
+      requiresCustomerAgent: enableCustomerAgent,
+    }
+
+    const createRequest = {
       name: liveKitRoomId,
       emptyTimeout: options.emptyTimeout || 300, // 5 minutes default
       maxParticipants: options.maxParticipants || 100,
-      metadata: JSON.stringify({
-        ...metadata,
-        organizationId,
-        roomName: name,
-        transcriptionEnabled: enableTranscriptionAgent,
-        customerAgentEnabled: enableCustomerAgent,
-        customerContext: customerContext || {},
-        // Agent dispatch info for agents to check
-        requiresTranscription: enableTranscriptionAgent,
-        requiresCustomerAgent: enableCustomerAgent,
-      }),
-    }
+      metadata: JSON.stringify(roomMetadata),
+    } as any
     
     const livekitRoom = await roomService.createRoom(createRequest)
     
@@ -82,7 +77,7 @@ export class LiveKitRoomService {
     const roomService = getRoomService()
     
     try {
-      const rooms = await roomService.listRooms({ names: [liveKitRoomId] })
+      const rooms = await roomService.listRooms([liveKitRoomId])
       return rooms[0] || null
     } catch (error) {
       console.error('Error fetching LiveKit room:', error)
@@ -120,17 +115,12 @@ export class LiveKitRoomService {
     
     // Optionally kick all participants
     const roomService = getRoomService()
-    const participants = await roomService.listParticipants({
-      room: room.liveKitRoomId,
-    })
+    const participants = await roomService.listParticipants(room.liveKitRoomId)
     
     // Remove all participants
     await Promise.all(
       participants.map(p => 
-        roomService.removeParticipant({
-          room: room.liveKitRoomId,
-          identity: p.identity,
-        })
+        roomService.removeParticipant(room.liveKitRoomId, p.identity)
       )
     )
     
@@ -140,12 +130,7 @@ export class LiveKitRoomService {
   // Get participants in a room
   static async getParticipants(liveKitRoomId: string) {
     const roomService = getRoomService()
-    
-    const request: ListParticipantsRequest = {
-      room: liveKitRoomId,
-    }
-    
-    return await roomService.listParticipants(request)
+    return await roomService.listParticipants(liveKitRoomId)
   }
   
   // Update participant metadata
@@ -156,25 +141,20 @@ export class LiveKitRoomService {
   ) {
     const roomService = getRoomService()
     
-    const request: UpdateParticipantRequest = {
-      room: liveKitRoomId,
+    return await roomService.updateParticipant(
+      liveKitRoomId,
       identity,
-      metadata: JSON.stringify(metadata),
-    }
-    
-    return await roomService.updateParticipant(request)
+      JSON.stringify(metadata)
+    )
   }
   
   // Remove participant from room
   static async removeParticipant(
     liveKitRoomId: string,
     identity: string
-  ): Promise<RemoveParticipantResponse> {
+  ) {
     const roomService = getRoomService()
     
-    return await roomService.removeParticipant({
-      room: liveKitRoomId,
-      identity,
-    })
+    return await roomService.removeParticipant(liveKitRoomId, identity)
   }
 }

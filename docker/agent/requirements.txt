@@ -1,7 +1,12 @@
-livekit
-livekit-agents>=0.8.0
-livekit-plugins-google>=0.6.0
+# LiveKit Agents v1.0 with voice pipeline
+livekit-agents[deepgram,openai,cartesia,silero,turn-detector]~=1.0
+livekit-plugins-noise-cancellation~=0.2
+
+# Core dependencies
 python-dotenv
 redis
 aiohttp
 pydantic
+
+# Additional AI providers (optional)
+livekit-plugins-google~=0.7

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/api.helpers'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {

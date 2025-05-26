@@ -53,52 +53,85 @@ services:
     networks:
       - dialoglens
 
-  # Transcription Agent
-  transcription-agent:
+  # Main DialogLens Agent (combines transcription + customer service)
+  dialoglens-agent:
     build:
       context: ./agent
       dockerfile: Dockerfile
-    command: python main.py
+    command: python main.py start
     environment:
       - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - API_URL=http://app:3000/api
       - API_KEY=${INTERNAL_API_KEY}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY}
       - REDIS_URL=redis://redis:6379
     volumes:
-      - ./service-account.json:/app/service-account.json:ro
+      - agent-models:/app/.cache
     depends_on:
       - livekit
       - app
       - redis
     networks:
       - dialoglens
+    restart: unless-stopped
 
-  # Customer Service Agent
+  # Dedicated Customer Service Agent (optional - for scaling)
   customer-agent:
     build:
       context: ./agent
       dockerfile: Dockerfile
-    command: python customer_agent.py
+    command: python customer_agent.py start
     environment:
       - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - API_URL=http://app:3000/api
       - API_KEY=${INTERNAL_API_KEY}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY}
       - REDIS_URL=redis://redis:6379
     volumes:
-      - ./service-account.json:/app/service-account.json:ro
+      - agent-models:/app/.cache
     depends_on:
       - livekit
       - app
       - redis
     networks:
       - dialoglens
+    restart: unless-stopped
+    profiles:
+      - scale  # Only run when using --profile scale
+
+  # Dedicated Transcription Agent (optional - for pure transcription)
+  transcription-agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    command: python transcription_agent.py start
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - API_URL=http://app:3000/api
+      - API_KEY=${INTERNAL_API_KEY}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - agent-models:/app/.cache
+    depends_on:
+      - livekit
+      - app
+      - redis
+    networks:
+      - dialoglens
+    restart: unless-stopped
+    profiles:
+      - scale  # Only run when using --profile scale
 
   # Job Queue Worker
   worker:
@@ -132,3 +165,4 @@ networks:
 
 volumes:
   redis-data:
+  agent-models:

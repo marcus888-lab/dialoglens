@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     ffmpeg \
+    libsndfile1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -19,9 +21,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create a non-root user
-RUN useradd -m -u 1001 agent && chown -R agent:agent /app
+# Create a non-root user and model directory
+RUN useradd -m -u 1001 agent && \
+    mkdir -p /app/.cache && \
+    chown -R agent:agent /app
+
+# Switch to non-root user
 USER agent
 
-# Default to transcription agent
-CMD ["python", "main.py"]
+# Download model files during build
+RUN python main.py download-files
+
+# Default to main agent
+CMD ["python", "main.py", "start"]

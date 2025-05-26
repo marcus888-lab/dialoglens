@@ -12,23 +12,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { roomId, speaker, text, timestamp, metadata } = body
 
-    // Find the room and active conversation
+    // Find the room
     const room = await prisma.room.findUnique({
       where: { liveKitRoomId: roomId },
-      include: { 
-        conversations: { 
-          where: { endedAt: null },
-          orderBy: { startedAt: 'desc' }, 
-          take: 1 
-        } 
-      },
     })
 
-    if (!room || !room.conversations[0]) {
-      return NextResponse.json({ error: 'Active conversation not found' }, { status: 404 })
+    if (!room) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
-    const conversation = room.conversations[0]
+    // Find active conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: { 
+        roomId: room.id,
+        endTime: null 
+      },
+      orderBy: { startTime: 'desc' },
+    })
+
+    if (!conversation) {
+      return NextResponse.json({ error: 'Active conversation not found' }, { status: 404 })
+    }
 
     // Store interaction in conversation metadata
     const currentMetadata = JSON.parse(conversation.metadata || '{}')

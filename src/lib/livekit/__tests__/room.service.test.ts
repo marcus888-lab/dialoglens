@@ -90,9 +90,7 @@ describe('LiveKitRoomService', () => {
 
       const result = await LiveKitRoomService.getLiveKitRoom('room-123')
 
-      expect(mockRoomService.listRooms).toHaveBeenCalledWith({
-        names: ['room-123'],
-      })
+      expect(mockRoomService.listRooms).toHaveBeenCalledWith(['room-123'])
       expect(result).toEqual(mockRoom)
     })
 
