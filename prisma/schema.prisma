@@ -36,7 +36,7 @@ model Room {
   name              String
   createdAt         DateTime      @default(now())
   endedAt           DateTime?
-  status            RoomStatus    @default(ACTIVE)
+  status            String        @default("ACTIVE") // ACTIVE, ENDED, ARCHIVED
   conversations     Conversation[]
   organizationId    String
   organization      Organization  @relation(fields: [organizationId], references: [id])
@@ -51,7 +51,7 @@ model Conversation {
   egressJobs        EgressJob[]
   transcript        Transcript?
   participants      Participant[]
-  status            ConvStatus    @default(RECORDING)
+  status            String        @default("RECORDING") // RECORDING, PROCESSING, COMPLETED, FAILED
 }
 
 model EgressJob {
@@ -61,7 +61,7 @@ model EgressJob {
   conversation      Conversation  @relation(fields: [conversationId], references: [id])
   participantId     String
   participant       Participant   @relation(fields: [participantId], references: [id])
-  status            JobStatus     @default(PENDING)
+  status            String        @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
   audioFileUrl      String?
   startedAt         DateTime      @default(now())
   completedAt       DateTime?
@@ -84,7 +84,7 @@ model Transcript {
   id                String        @id @default(cuid())
   conversationId    String        @unique
   conversation      Conversation  @relation(fields: [conversationId], references: [id])
-  content           Json          // Structured transcript data
+  content           String        // Structured transcript data as JSON string
   rawContent        String?       // Plain text version
   createdAt         DateTime      @default(now())
   processingTime    Int?          // milliseconds
@@ -101,25 +101,5 @@ model Segment {
   startTime         Float         // seconds
   endTime           Float         // seconds
   confidence        Float?
-  words             Json?         // Word-level timing data
-}
-
-enum RoomStatus {
-  ACTIVE
-  ENDED
-  ARCHIVED
-}
-
-enum ConvStatus {
-  RECORDING
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-enum JobStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
+  words             String?       // Word-level timing data as JSON string
 }
