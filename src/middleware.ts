@@ -1,14 +1,28 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// Temporarily disabled Clerk - uncomment when keys are configured
-// import { authMiddleware } from "@clerk/nextjs/server";
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/api/conversations(.*)',
+  '/api/rooms(.*)',
+  '/api/transcripts(.*)',
+])
 
-export function middleware(request: NextRequest) {
-  // For now, just pass through all requests
-  return NextResponse.next()
-}
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhooks(.*)',
+])
+
+export default clerkMiddleware((auth, req) => {
+  if (!isPublicRoute(req) && isProtectedRoute(req)) {
+    auth().protect()
+  }
+})
 
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
 }
