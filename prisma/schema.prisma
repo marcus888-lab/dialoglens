@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  rooms         Room[]
+  users         User[]
+}
+
+model User {
+  id             String        @id @default(cuid())
+  clerkId        String        @unique
+  email          String        @unique
+  name           String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Room {
+  id                String        @id @default(cuid())
+  liveKitRoomId     String        @unique
+  name              String
+  createdAt         DateTime      @default(now())
+  endedAt           DateTime?
+  status            RoomStatus    @default(ACTIVE)
+  conversations     Conversation[]
+  organizationId    String
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+}
+
+model Conversation {
+  id                String        @id @default(cuid())
+  roomId            String
+  room              Room          @relation(fields: [roomId], references: [id])
+  startTime         DateTime
+  endTime           DateTime?
+  egressJobs        EgressJob[]
+  transcript        Transcript?
+  participants      Participant[]
+  status            ConvStatus    @default(RECORDING)
+}
+
+model EgressJob {
+  id                String        @id @default(cuid())
+  liveKitEgressId   String        @unique
+  conversationId    String
+  conversation      Conversation  @relation(fields: [conversationId], references: [id])
+  participantId     String
+  participant       Participant   @relation(fields: [participantId], references: [id])
+  status            JobStatus     @default(PENDING)
+  audioFileUrl      String?
+  startedAt         DateTime      @default(now())
+  completedAt       DateTime?
+  error             String?
+}
+
+model Participant {
+  id                String        @id @default(cuid())
+  liveKitIdentity   String
+  name              String
+  conversationId    String
+  conversation      Conversation  @relation(fields: [conversationId], references: [id])
+  egressJobs        EgressJob[]
+  speakerLabel      String?       // Assigned after diarization
+  joinedAt          DateTime
+  leftAt            DateTime?
+}
+
+model Transcript {
+  id                String        @id @default(cuid())
+  conversationId    String        @unique
+  conversation      Conversation  @relation(fields: [conversationId], references: [id])
+  content           Json          // Structured transcript data
+  rawContent        String?       // Plain text version
+  createdAt         DateTime      @default(now())
+  processingTime    Int?          // milliseconds
+  wordCount         Int?
+  segments          Segment[]
+}
+
+model Segment {
+  id                String        @id @default(cuid())
+  transcriptId      String
+  transcript        Transcript    @relation(fields: [transcriptId], references: [id])
+  speakerLabel      String
+  text              String
+  startTime         Float         // seconds
+  endTime           Float         // seconds
+  confidence        Float?
+  words             Json?         // Word-level timing data
+}
+
+enum RoomStatus {
+  ACTIVE
+  ENDED
+  ARCHIVED
+}
+
+enum ConvStatus {
+  RECORDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
