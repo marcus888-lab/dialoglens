@@ -11,11 +11,11 @@
         "@radix-ui/react-label": "^2.0.2",
         "@radix-ui/react-select": "^2.0.0",
         "@radix-ui/react-slot": "^1.0.2",
-        "bullmq": "^5.8.3",
+        "bullmq": "^5.53.0",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.1",
         "date-fns": "^3.6.0",
-        "ioredis": "^5.4.1",
+        "ioredis": "^5.6.1",
         "livekit-client": "^2.1.5",
         "livekit-server-sdk": "^2.4.0",
         "lucide-react": "^0.395.0",
@@ -29,6 +29,7 @@
         "@tailwindcss/postcss": "^4.1.7",
         "@tailwindcss/vite": "^4.0.0",
         "@types/bun": "latest",
+        "@types/ioredis": "^5.0.0",
         "@types/node": "^20",
         "@types/react": "^18",
         "@types/react-dom": "^18",
@@ -366,6 +367,8 @@
     "@types/dom-mediacapture-record": ["@types/dom-mediacapture-record@1.0.22", "", {}, "sha512-mUMZLK3NvwRLcAAT9qmcK+9p7tpU2FHdDsntR3YI4+GY88XrgG4XiE7u1Q2LAN2/FZOz/tdMDC3GQCR4T8nFuw=="],
 
     "@types/estree": ["@types/estree@1.0.7", "", {}, "sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ=="],
+
+    "@types/ioredis": ["@types/ioredis@5.0.0", "", { "dependencies": { "ioredis": "*" } }, "sha512-zJbJ3FVE17CNl5KXzdeSPtdltc4tMT3TzC6fxQS0sQngkbFZ6h+0uTafsRqu+eSLIugf6Yb0Ea0SUuRr42Nk9g=="],
 
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
 
