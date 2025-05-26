@@ -7,6 +7,13 @@ const createRoomSchema = z.object({
   name: z.string().min(1).max(255),
   organizationId: z.string().cuid(),
   metadata: z.record(z.any()).optional(),
+  enableTranscriptionAgent: z.boolean().optional().default(true),
+  enableCustomerAgent: z.boolean().optional().default(false),
+  customerContext: z.object({
+    name: z.string().optional(),
+    company: z.string().optional(),
+    purpose: z.string().optional(),
+  }).optional(),
 })
 
 // GET /api/rooms - List rooms

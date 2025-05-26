@@ -19,16 +19,30 @@ export interface CreateRoomOptions {
   emptyTimeout?: number
   maxParticipants?: number
   metadata?: Record<string, any>
+  enableTranscriptionAgent?: boolean
+  enableCustomerAgent?: boolean
+  customerContext?: {
+    name?: string
+    company?: string
+    purpose?: string
+  }
 }
 
 export class LiveKitRoomService {
   // Create a new LiveKit room and save to database
   static async createRoom(options: CreateRoomOptions) {
-    const { name, organizationId, metadata = {} } = options
+    const { 
+      name, 
+      organizationId, 
+      metadata = {},
+      enableTranscriptionAgent = true,
+      enableCustomerAgent = false,
+      customerContext
+    } = options
     const roomService = getRoomService()
     
     // Generate unique room ID
-    const liveKitRoomId = `room-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const liveKitRoomId = `room-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     
     // Create LiveKit room
     const createRequest: CreateRoomRequest = {
@@ -39,7 +53,12 @@ export class LiveKitRoomService {
         ...metadata,
         organizationId,
         roomName: name,
-        transcriptionEnabled: true,
+        transcriptionEnabled: enableTranscriptionAgent,
+        customerAgentEnabled: enableCustomerAgent,
+        customerContext: customerContext || {},
+        // Agent dispatch info for agents to check
+        requiresTranscription: enableTranscriptionAgent,
+        requiresCustomerAgent: enableCustomerAgent,
       }),
     }
     

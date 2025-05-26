@@ -1,0 +1,134 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  app:
+    build:
+      context: ../
+      dockerfile: docker/app/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./db/dev.db
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://livekit:7880}
+      - REDIS_URL=redis://redis:6379
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - S3_BUCKET=${S3_BUCKET}
+    volumes:
+      - ../prisma/db:/app/prisma/db
+      - ./service-account.json:/app/service-account.json:ro
+    depends_on:
+      - redis
+      - livekit
+    networks:
+      - dialoglens
+
+  # Redis for job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - dialoglens
+
+  # LiveKit Server
+  livekit:
+    image: livekit/livekit-server:latest
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    environment:
+      - LIVEKIT_KEYS=${LIVEKIT_API_KEY}:${LIVEKIT_API_SECRET}
+      - LIVEKIT_WEBHOOK_URLS=http://app:3000/api/webhooks/livekit
+    networks:
+      - dialoglens
+
+  # Transcription Agent
+  transcription-agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    command: python main.py
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - API_URL=http://app:3000/api
+      - API_KEY=${INTERNAL_API_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./service-account.json:/app/service-account.json:ro
+    depends_on:
+      - livekit
+      - app
+      - redis
+    networks:
+      - dialoglens
+
+  # Customer Service Agent
+  customer-agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    command: python customer_agent.py
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - API_URL=http://app:3000/api
+      - API_KEY=${INTERNAL_API_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./service-account.json:/app/service-account.json:ro
+    depends_on:
+      - livekit
+      - app
+      - redis
+    networks:
+      - dialoglens
+
+  # Job Queue Worker
+  worker:
+    build:
+      context: ../
+      dockerfile: docker/worker/Dockerfile
+    command: bun run src/lib/queue/worker.ts
+    environment:
+      - DATABASE_URL=file:./db/dev.db
+      - REDIS_URL=redis://redis:6379
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_URL=ws://livekit:7880
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - S3_BUCKET=${S3_BUCKET}
+    volumes:
+      - ../prisma/db:/app/prisma/db
+      - ./service-account.json:/app/service-account.json:ro
+    depends_on:
+      - redis
+      - app
+    networks:
+      - dialoglens
+
+networks:
+  dialoglens:
+    driver: bridge
+
+volumes:
+  redis-data:
